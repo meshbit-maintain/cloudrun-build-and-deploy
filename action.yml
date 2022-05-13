@@ -57,7 +57,7 @@ runs:
       uses: 'docker/login-action@v1'
       with:
         username: 'oauth2accesstoken'
-        password: '${{ steps.google-auth.outputs.access_token }}'
+        password: '${{ steps.auth_google.outputs.access_token }}'
         registry: '${{ inputs.artifact_location }}-docker.pkg.dev'
 
     - name: Build and Push Container
