@@ -64,6 +64,7 @@ runs:
       id: build
       env:
         IMAGE: ${{ inputs.artifact_location }}-docker.pkg.dev/${{ inputs.project_id }}/${{ inputs.service_name }}:${{ inputs.image_tag }}
+      shell: bash
       run: |-
         docker build ${{ inputs.build_flags }} -t "$IMAGE" .
         docker push "$IMAGE"
@@ -85,6 +86,7 @@ runs:
       id: report
       env:
         URL: ${{ steps.deploy.outputs.url }}
+      shell: bash
       run: |-
         echo $URL
         echo "::set-output name=service_url::$(echo $URL)"
