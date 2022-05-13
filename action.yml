@@ -1,0 +1,82 @@
+name: "CloudRun Build & Deploy"
+
+inputs:
+  wif_provider:
+    description: "workload identity provider project resource"
+    required: true
+  wif_service_account:
+    description: "service account connected to the wif_provider"
+    required: true
+  project_id:
+    description: "google cloud project id"
+    required: true
+  artifact_location:
+    description: "google cloud artifact registry location"
+    required: true
+  image_tag:
+    description: "tag of the image built from the provided source"
+    required: true
+  build_flags:
+    description: "flags to be appended for docker build"
+  service_name:
+    description: "cloudrun service name"
+    required: true
+  service_region:
+    description: "cloudrun service region"
+    required: true
+  service_tag:
+    description: "cloudrun service tag"
+  service_project_id:
+    description: "cloudrun service region"
+  service_env_vars:
+    description: "cloudrun service env vars"
+  service_flags:
+    descirption: "cloudrun service flags"
+
+outputs:
+  service_image:
+    description: "container image of the service"
+    value: ${{ steps.build.outputs.service_image }}
+  
+runs:
+  using: "composite"
+  steps:
+  	- name: Google Auth
+        id: google-auth
+        uses: 'google-github-actions/auth@v0'
+        with:
+          token_format: 'access_token'
+          workload_identity_provider: '${{ inputs.wif_provider }}'
+          service_account: '${{ inputs.wif_service_account }}'
+
+      - name: Docker Auth
+        id: docker-auth
+        uses: 'docker/login-action@v1'
+        with:
+          username: 'oauth2accesstoken'
+          password: '${{ steps.google-auth.outputs.access_token }}'
+          registry: '${{ inputs.artifact_location }}-docker.pkg.dev'
+
+      - name: Build and Push Container
+     		id: build
+     		env:
+          IMAGE: ${{ inputs.artifact_location }}-docker.pkg.dev/${{ inputs.project_id }}/${{ inputs.service_name }}:${{ inputs.image_tag }}
+        run: |-
+          docker build ${{ inputs.build_flags }} -t "$IMAGE" .
+          docker push "$IMAGE"
+          echo "::set-output name=service_image::$(echo $IMAGE)"
+
+      - name: Deploy to Cloud Run
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v0
+        with:
+          image: ${{ steps.build.outputs.service_image }}
+          service: ${{ inputs.service_name }}
+          region: ${{ inputs.service_region }}
+          tag: ${{ inputs.service_tag }}
+          env_vars: ${{ inputs.service_env_vars }}
+          project_id: ${{ inputs.service_project_id }}
+          flags: ${{ inputs.service_flags }}
+
+      - name: Echo Service URL
+        run: echo ${{ steps.deploy.outputs.url }}
