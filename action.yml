@@ -63,7 +63,7 @@ runs:
     - name: Build and Push Container
       id: build
       env:
-        IMAGE: ${{ inputs.artifact_location }}-docker.pkg.dev/${{ inputs.project_id }}/${{ inputs.service_name }}:${{ inputs.image_tag }}
+        IMAGE: ${{ inputs.artifact_location }}-docker.pkg.dev/${{ inputs.project_id }}/${{ inputs.service_name }}/cloudrun:${{ inputs.image_tag }}
       shell: bash
       run: |-
         docker build ${{ inputs.build_flags }} -t "$IMAGE" .
